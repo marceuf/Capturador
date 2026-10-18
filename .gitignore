@@ -1,0 +1,9 @@
+.build/
+build.noindex/
+.swiftpm/
+.signing-identity
+.DS_Store
+xcuserdata/
+*.p12
+*.cer
+.env
