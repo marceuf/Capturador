@@ -7,3 +7,7 @@ xcuserdata/
 *.p12
 *.cer
 .env
+bin/
+obj/
+out/
+windows/installer/Output/

@@ -1,0 +1,63 @@
+# Gera os instaladores do Capturador para Windows (x64 e ARM64).
+# Uma tag v* (por exemplo v1.0.0) publica os instaladores na página de versões (Releases);
+# rodar manualmente só gera os arquivos para baixar no resumo da execução.
+name: Windows
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Testes
+        run: dotnet test windows/tests/Capturador.Core.Tests -c Release
+
+      - name: Instaladores
+        shell: pwsh
+        env:
+          REF_TYPE: ${{ github.ref_type }}
+          REF_NAME: ${{ github.ref_name }}
+        run: |
+          $version = if ($env:REF_TYPE -eq "tag") { $env:REF_NAME.TrimStart("v") } else { "0.0.0" }
+          if ($version -notmatch '^\d+\.\d+\.\d+$') { throw "A tag precisa ser vX.Y.Z (recebido: $version)" }
+          if (-not (Get-Command iscc -ErrorAction SilentlyContinue)) {
+            $inno = "${env:ProgramFiles(x86)}\Inno Setup 6"
+            if (-not (Test-Path "$inno\ISCC.exe")) { choco install innosetup -y --no-progress }
+            $env:PATH += ";$inno"
+          }
+          foreach ($arch in "x64", "arm64") {
+            dotnet publish windows/src/Capturador -c Release -r "win-$arch" -p:Version=$version -o "out/$arch"
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+            iscc /Q "/DAppVersion=$version" "/DArch=$arch" "/DSourceDir=$PWD\out\$arch" windows/installer/Capturador.iss
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          }
+          Get-FileHash windows/installer/Output/*.exe -Algorithm SHA256 | ForEach-Object { "$($_.Hash.ToLower())  $(Split-Path $_.Path -Leaf)" } | Out-File windows/installer/Output/SHA256SUMS.txt -Encoding ascii
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: instaladores
+          path: windows/installer/Output/*
+
+      - name: Publicar na versão
+        if: github.ref_type == 'tag'
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          $tag = $env:TAG
+          gh release view $tag 2>$null
+          if ($LASTEXITCODE -ne 0) { gh release create $tag --title "Capturador $tag" --notes "Instaladores para Windows. Veja o README para o aviso do SmartScreen." }
+          gh release upload $tag (Get-ChildItem windows/installer/Output/*) --clobber

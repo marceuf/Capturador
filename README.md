@@ -1,9 +1,13 @@
 # Capturador
 
-App de captura de tela para a barra de menus do macOS (15+). Usa só frameworks da Apple:
-ScreenCaptureKit, Vision, Core Image e Carbon.
+App de captura de tela com anotação, OCR e gravação, para **macOS** (barra de menus) e
+**Windows** (bandeja, ao lado do relógio). Tudo roda no computador: sem internet, sem conta.
 
-## Instalar
+- **macOS 15+:** frameworks da Apple (ScreenCaptureKit, Vision, Core Image e Carbon). Instalação
+  compilando o código, abaixo.
+- **Windows 10 (22H2) e 11:** app nativo em C#/.NET, com instalador pronto. Veja [Windows](#windows).
+
+## Instalar no macOS
 
 Requisitos: macOS 15 ou mais novo e as ferramentas de linha de comando do Xcode
 (`xcode-select --install`) ou o Xcode completo.
@@ -22,7 +26,7 @@ nova compilação.
 Para atualizar: `git pull` e `./build.sh --install` de novo. Para desinstalar, apague
 `~/Applications/Capturador.app`.
 
-## Atalhos
+## Atalhos no macOS
 
 Os atalhos globais são configuráveis em **Ajustes… › Atalhos globais**: clique no atalho e pressione a
 nova combinação (precisa de ⌃, ⌥ ou ⌘, ou ser uma tecla F). Esc cancela, ⌫ desativa e ↺ restaura o padrão.
@@ -55,6 +59,50 @@ falhar, a área fica preta; se a imagem final não puder ser gerada, nada é cop
 Copiar no editor (⌘C ou Enter) põe a imagem na área de transferência. O OCR copia o texto reconhecido
 automaticamente assim que termina. Com a Área de Transferência Universal ligada, o que for copiado também
 fica disponível nos seus outros dispositivos Apple.
+
+## Windows
+
+### Instalar
+
+1. Abra a página de [versões](https://github.com/marceuf/Capturador/releases) e baixe o instalador
+   do seu computador:
+   - `Capturador-<versão>-x64-setup.exe` para a maioria dos PCs (Intel ou AMD);
+   - `Capturador-<versão>-arm64-setup.exe` para PCs com processador ARM (Snapdragon, por exemplo).
+2. Abra o arquivo baixado. Como o instalador ainda não tem assinatura digital, o Windows mostra
+   **"O Windows protegeu o computador"**. Clique em **Mais informações** e depois em
+   **Executar assim mesmo**.
+3. Siga o instalador. Ele instala só para o seu usuário e não pede senha de administrador.
+
+O Capturador fica na bandeja, ao lado do relógio (às vezes dentro da seta **^**). Para conferir o
+arquivo baixado, compare o SHA-256 com o `SHA256SUMS.txt` da mesma versão.
+
+Para desinstalar: Configurações › Aplicativos › Aplicativos instalados › Capturador › Desinstalar.
+
+### Atalhos
+
+| Ação | Padrão |
+| --- | --- |
+| Capturar área ou janela | Win+Shift+X |
+| Extrair texto (OCR) | Win+Shift+O |
+| Iniciar/parar gravação | Win+Shift+G |
+
+Troque em **Ajustes…**, no menu do ícone. Atalhos com Ctrl+Alt+letra não são aceitos: no Windows
+eles equivalem a AltGr e bloqueariam letras acentuadas.
+
+O editor, a seleção e a gravação funcionam como no Mac, com Ctrl no lugar de ⌘ (Ctrl+C copia,
+Ctrl+S salva, Ctrl+Z desfaz, Ctrl+W descarta). As gravações são salvas em MP4. O OCR usa o
+reconhecimento de texto do Windows: se não houver idioma com OCR instalado, a janela de OCR
+explica como adicionar o Português (Brasil).
+
+### Compilar
+
+Requisitos: .NET SDK 10. O código fica em `windows/`.
+
+    dotnet test windows/tests/Capturador.Core.Tests
+    dotnet publish windows/src/Capturador -c Release -r win-x64 -o out/x64
+
+Os instaladores das versões são gerados pelo GitHub Actions (`.github/workflows/windows-release.yml`)
+com o [Inno Setup](https://jrsoftware.org/isinfo.php) a partir de `windows/installer/Capturador.iss`.
 
 ## Licença
 
